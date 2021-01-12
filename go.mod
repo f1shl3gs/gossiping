@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/go-ping/ping v0.0.0-20201115131931-3300c582a663
-	github.com/gogo/protobuf v1.2.1
+	github.com/gogo/protobuf v1.3.1
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/memberlist v0.1.3
 	github.com/jsternberg/zap-logfmt v1.2.0
