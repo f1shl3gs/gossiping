@@ -1,9 +1,8 @@
-package exporter
+package tasks
 
 import (
 	"github.com/go-ping/ping"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/model"
 )
 
 type Task struct {
@@ -29,7 +28,7 @@ func (task *Task) Collect(metrics chan<- prometheus.Metric) {
 	task.rttDuration.Collect(metrics)
 }
 
-func newTask(addr string, lbs model.LabelSet) (*Task, error) {
+func newTask(addr string, lbs map[string]string) (*Task, error) {
 	pinger, err := ping.NewPinger(addr)
 	if err != nil {
 		return nil, err
@@ -37,9 +36,9 @@ func newTask(addr string, lbs model.LabelSet) (*Task, error) {
 
 	constLabels := make(map[string]string, len(lbs)+1)
 	for k, v := range lbs {
-		constLabels[string(k)] = string(v)
+		constLabels[k] = v
 	}
-	constLabels["targetpb"] = addr
+	constLabels["target"] = addr
 
 	recvPackets := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   "gossiping",

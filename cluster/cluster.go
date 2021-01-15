@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/go-events"
 	"github.com/hashicorp/memberlist"
 	"github.com/oklog/ulid"
 	"github.com/pkg/errors"
@@ -59,7 +60,8 @@ type Peer struct {
 	peerUpdateCounter          prometheus.Counter
 	peerJoinCounter            prometheus.Counter
 
-	logger *zap.Logger
+	logger      *zap.Logger
+	broadcaster *events.Broadcaster
 }
 
 // peer is an internal type used for bookkeeping. It holds the state of peers
@@ -532,7 +534,6 @@ func (p *Peer) peerUpdate(n *memberlist.Node) {
 		zap.String("address", pr.Address()))
 }
 
-/*
 // AddState adds a new state that will be gossiped. It returns a channel to which
 // broadcast messages for the state can be sent.
 func (p *Peer) AddState(key string, s State, reg prometheus.Registerer) *Channel {
@@ -542,12 +543,12 @@ func (p *Peer) AddState(key string, s State, reg prometheus.Registerer) *Channel
 	}
 	peers := func() []*memberlist.Node {
 		nodes := p.Peers()
-		for i, n := range nodes {
-			if n.Name == p.Self().Name {
-				nodes = append(nodes[:i], nodes[i+1:]...)
-				break
-			}
-		}
+		// for i, n := range nodes {
+		// 	if n.Name == p.Self().Name {
+		// 		nodes = append(nodes[:i], nodes[i+1:]...)
+		// 		break
+		// 	}
+		// }
 		return nodes
 	}
 	sendOversize := func(n *memberlist.Node, b []byte) error {
@@ -555,7 +556,6 @@ func (p *Peer) AddState(key string, s State, reg prometheus.Registerer) *Channel
 	}
 	return NewChannel(key, send, peers, sendOversize, p.logger, p.stopc, reg)
 }
-*/
 
 // Leave the cluster, waiting up to timeout.
 func (p *Peer) Leave(timeout time.Duration) error {

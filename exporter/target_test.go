@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewTarget(t *testing.T) {
-	target, err := NewTarget("127.0.0.1")
+	target, err := newTask("127.0.0.1")
 	require.NoError(t, err)
 
 	err = target.Start()
