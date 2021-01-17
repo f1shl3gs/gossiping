@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/f1shl3gs/gossiping/cmd/gossiping/serve"
 	"os"
 
 	"github.com/f1shl3gs/gossiping/cmd/gossiping/cluster"
@@ -12,14 +13,10 @@ import (
 func main() {
 	rootCmd := &cobra.Command{
 		Use:          "gossiping",
-		RunE:         launch,
 		SilenceUsage: true,
 	}
 
-	rootCmd.Flags().Bool("no-ping", false, "disable ping")
-	rootCmd.Flags().String("job-state-path", "/etc/gossiping/jobs",
-		"targets file will be dumped to")
-
+	rootCmd.AddCommand(serve.Serve())
 	rootCmd.AddCommand(cluster.New())
 	rootCmd.AddCommand(job.New())
 	rootCmd.AddCommand(autoComplete())

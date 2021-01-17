@@ -1,19 +1,24 @@
 package tasks
 
 import (
+	"time"
+
 	"github.com/go-ping/ping"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 )
 
 type Task struct {
 	address string
 
-	pinger *ping.Pinger
+	pinger  *ping.Pinger
+	stopped bool
 
 	// metrics
 	recvPackets prometheus.Counter
 	sendPackets prometheus.Counter
 	rttDuration prometheus.Summary
+	pingError   prometheus.Gauge
 }
 
 func (task *Task) Describe(descs chan<- *prometheus.Desc) {
@@ -33,6 +38,7 @@ func newTask(addr string, lbs map[string]string) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
+	pinger.SetPrivileged(true)
 
 	constLabels := make(map[string]string, len(lbs)+1)
 	for k, v := range lbs {
@@ -63,7 +69,15 @@ func newTask(addr string, lbs map[string]string) (*Task, error) {
 		ConstLabels: constLabels,
 	})
 
+	pingError := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace:   "gossiping",
+		Subsystem:   "ping",
+		Name:        "error",
+		ConstLabels: constLabels,
+	})
+
 	pinger.OnSend = func(pkt *ping.Packet) {
+		pingError.Set(0)
 		sendPackets.Inc()
 	}
 
@@ -78,13 +92,36 @@ func newTask(addr string, lbs map[string]string) (*Task, error) {
 		recvPackets: recvPackets,
 		sendPackets: sendPackets,
 		rttDuration: rttDuration,
+		pingError:   pingError,
 	}, err
 }
 
-func (task *Task) Start() error {
-	return task.pinger.Run()
+func (task *Task) Start(logger *zap.Logger) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Error("task panicked",
+				zap.Stack("task"))
+		}
+	}()
+
+	for {
+		err := task.pinger.Run()
+		if task.stopped {
+			return
+		}
+
+		task.pingError.Set(1)
+		if err != nil {
+			logger.Warn("ping error",
+				zap.Error(err))
+			time.Sleep(5 * time.Second)
+			continue
+		}
+	}
 }
 
 func (task *Task) Stop() {
+	task.stopped = true
 	task.pinger.Stop()
 }

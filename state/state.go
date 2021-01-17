@@ -14,6 +14,13 @@ type Generator struct {
 	logger *zap.Logger
 }
 
+func New(path string, logger *zap.Logger) *Generator {
+	return &Generator{
+		path:   path,
+		logger: logger,
+	}
+}
+
 func (gen *Generator) OnUpdate(me *targetpb.MeshEntry) {
 	if me.Status == targetpb.Status_Active {
 		gen.update(me)

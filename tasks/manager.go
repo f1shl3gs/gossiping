@@ -10,16 +10,14 @@ import (
 )
 
 type Collector struct {
-	logger *zap.Logger
+	logger         *zap.Logger
+	externalLabels map[string]string
 
 	mtx   sync.RWMutex
 	tasks map[string]map[uint64]*Task
-
-	// state descs
-
 }
 
-func New(logger *zap.Logger) *Collector {
+func New(logger *zap.Logger, externalLabels map[string]string) *Collector {
 	c := &Collector{
 		logger: logger,
 		tasks:  make(map[string]map[uint64]*Task),
@@ -63,7 +61,15 @@ func (c *Collector) Coordinate(me *targetpb.MeshEntry) {
 			continue
 		}
 
-		task, err := newTask(addr, me.Targetgroup.Labels)
+		m := make(map[string]string, len(me.Targetgroup.Labels)+len(c.externalLabels))
+		for k, v := range me.Targetgroup.Labels {
+			m[k] = v
+		}
+		for k, v := range c.externalLabels {
+			m[k] = v
+		}
+
+		task, err := newTask(addr, m)
 		if err != nil {
 			c.logger.Warn("create new task failed",
 				zap.String("job", me.Name),
@@ -72,12 +78,7 @@ func (c *Collector) Coordinate(me *targetpb.MeshEntry) {
 			continue
 		}
 
-		if err := task.Start(); err != nil {
-			c.logger.Warn("start task failed",
-				zap.String("job", me.Name),
-				zap.String("addr", addr),
-				zap.Error(err))
-		}
+		go task.Start(c.logger)
 
 		taskGroup[taskID] = task
 		c.logger.Info("add target",

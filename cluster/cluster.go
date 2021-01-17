@@ -16,7 +16,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"math/rand"
 	"net"
 	"sort"
@@ -25,10 +24,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/go-events"
 	"github.com/hashicorp/memberlist"
 	"github.com/oklog/ulid"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -60,8 +59,8 @@ type Peer struct {
 	peerUpdateCounter          prometheus.Counter
 	peerJoinCounter            prometheus.Counter
 
-	logger      *zap.Logger
-	broadcaster *events.Broadcaster
+	logger  *zap.Logger
+	changes chan struct{}
 }
 
 // peer is an internal type used for bookkeeping. It holds the state of peers
@@ -183,6 +182,7 @@ func Create(
 		peers:         map[string]peer{},
 		resolvedPeers: resolvedPeers,
 		knownPeers:    knownPeers,
+		changes:       make(chan struct{}, 4),
 	}
 
 	p.register(reg, name.String())
@@ -463,6 +463,10 @@ func (p *Peer) refresh() {
 	}
 }
 
+func (p *Peer) Changed() <-chan struct{} {
+	return p.changes
+}
+
 func (p *Peer) peerJoin(n *memberlist.Node) {
 	p.peerLock.Lock()
 	defer p.peerLock.Unlock()
@@ -490,6 +494,12 @@ func (p *Peer) peerJoin(n *memberlist.Node) {
 			zap.String("peer", pr.Name))
 		p.failedPeers = removeOldPeer(p.failedPeers, pr.Address())
 	}
+
+	select {
+	case p.changes <- struct{}{}:
+	default:
+		p.logger.Warn("peer join event dropped")
+	}
 }
 
 func (p *Peer) peerLeave(n *memberlist.Node) {
@@ -512,6 +522,12 @@ func (p *Peer) peerLeave(n *memberlist.Node) {
 	p.logger.Info("peer left",
 		zap.String("peer", pr.Name),
 		zap.String("address", pr.Address()))
+
+	select {
+	case p.changes <- struct{}{}:
+	default:
+		p.logger.Warn("peer left event dropped")
+	}
 }
 
 func (p *Peer) peerUpdate(n *memberlist.Node) {
@@ -532,6 +548,12 @@ func (p *Peer) peerUpdate(n *memberlist.Node) {
 	p.logger.Info("peer updated",
 		zap.String("peer", pr.Name),
 		zap.String("address", pr.Address()))
+
+	select {
+	case p.changes <- struct{}{}:
+	default:
+		p.logger.Warn("peer update event dropped")
+	}
 }
 
 // AddState adds a new state that will be gossiped. It returns a channel to which
