@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"sort"
 	"sync"
@@ -21,6 +22,18 @@ func NewStore() *Store {
 		entries:   make(map[string]*targetpb.MeshEntry),
 		callbacks: make(map[string]func(me *targetpb.MeshEntry)),
 	}
+}
+
+func (s *Store) Snapshot(w io.Writer) error {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	mes := make([]*targetpb.MeshEntry, 0, len(s.entries))
+	for _, ent := range s.entries {
+		mes = append(mes, ent)
+	}
+
+	return json.NewEncoder(w).Encode(&mes)
 }
 
 // todo: may the enable compress for the state

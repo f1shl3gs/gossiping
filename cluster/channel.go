@@ -53,22 +53,22 @@ func NewChannel(
 	reg prometheus.Registerer,
 ) *Channel {
 	oversizeGossipMessageFailureTotal := prometheus.NewCounter(prometheus.CounterOpts{
-		Name:        "alertmanager_oversized_gossip_message_failure_total",
+		Name:        "gossiping_oversized_gossip_message_failure_total",
 		Help:        "Number of oversized gossip message sends that failed.",
 		ConstLabels: prometheus.Labels{"key": key},
 	})
 	oversizeGossipMessageSentTotal := prometheus.NewCounter(prometheus.CounterOpts{
-		Name:        "alertmanager_oversized_gossip_message_sent_total",
+		Name:        "gossiping_oversized_gossip_message_sent_total",
 		Help:        "Number of oversized gossip message sent.",
 		ConstLabels: prometheus.Labels{"key": key},
 	})
 	oversizeGossipMessageDroppedTotal := prometheus.NewCounter(prometheus.CounterOpts{
-		Name:        "alertmanager_oversized_gossip_message_dropped_total",
+		Name:        "gossiping_oversized_gossip_message_dropped_total",
 		Help:        "Number of oversized gossip messages that were dropped due to a full message queue.",
 		ConstLabels: prometheus.Labels{"key": key},
 	})
 	oversizeGossipDuration := prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:        "alertmanager_oversize_gossip_message_duration_seconds",
+		Name:        "gossiping_oversize_gossip_message_duration_seconds",
 		Help:        "Duration of oversized gossip message requests.",
 		ConstLabels: prometheus.Labels{"key": key},
 	})

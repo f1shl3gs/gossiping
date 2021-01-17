@@ -25,12 +25,14 @@ func (task *Task) Describe(descs chan<- *prometheus.Desc) {
 	descs <- task.recvPackets.Desc()
 	descs <- task.sendPackets.Desc()
 	descs <- task.rttDuration.Desc()
+	descs <- task.pingError.Desc()
 }
 
 func (task *Task) Collect(metrics chan<- prometheus.Metric) {
 	task.sendPackets.Collect(metrics)
 	task.recvPackets.Collect(metrics)
 	task.rttDuration.Collect(metrics)
+	task.pingError.Collect(metrics)
 }
 
 func newTask(addr string, lbs map[string]string) (*Task, error) {
@@ -105,6 +107,7 @@ func (task *Task) Start(logger *zap.Logger) {
 		}
 	}()
 
+	task.pingError.Set(1)
 	for {
 		err := task.pinger.Run()
 		if task.stopped {

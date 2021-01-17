@@ -2,11 +2,17 @@ package job
 
 import (
 	"context"
+	"fmt"
 	"github.com/f1shl3gs/gossiping/cmd/gossiping/internal"
+	"github.com/f1shl3gs/gossiping/tasks/targetpb"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func New() *cobra.Command {
@@ -59,15 +65,40 @@ func add() *cobra.Command {
 
 func list() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "list all jobs",
+		Use:     "list",
+		Short:   "list all jobs",
+		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cli := internal.ClientFromCmd(cmd)
-			var jobs []string
-			err := cli.Get(context.Background(), "/jobs", &jobs)
+			var entries []*targetpb.MeshEntry
+			err := cli.Get(context.Background(), "/jobs", &entries)
 			if err != nil {
 				return err
 			}
+
+			if len(entries) == 0 {
+				fmt.Println("no jobs")
+				return nil
+			}
+
+			sort.SliceIsSorted(entries, func(i, j int) bool {
+				return entries[i].Name < entries[j].Name
+			})
+
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetHeader([]string{"Name", "Status", "Updated", "Targets", "Labels"})
+
+			for _, ent := range entries {
+				table.Append([]string{
+					ent.Name,
+					targetpb.Status_name[int32(ent.Status)],
+					ent.Updated.Local().Format(time.RFC3339),
+					strconv.Itoa(len(ent.Targetgroup.Targets)),
+					mapToStr(ent.Targetgroup.Labels),
+				})
+			}
+
+			table.Render()
 
 			return nil
 		},
@@ -110,4 +141,19 @@ func remove() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func mapToStr(m map[string]string) string {
+	keys := make([]string, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for i, k := range keys {
+		keys[i] = k + "=" + m[k]
+	}
+
+	return strings.Join(keys, ",")
 }

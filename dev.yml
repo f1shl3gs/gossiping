@@ -1,10 +1,18 @@
+# global:
+#   external_labels:
+#     foo: bar
+#
+# prometheus:
+#   output: gossiping.yml
+#
+# tasks:
+#   dry_run: true
+#   states: ./
+#
+
 global:
   external_labels:
-    foo: bar
-
-prometheus:
-  output: gossiping.yml
+    az: cn-hangzhou-g
 
 tasks:
-  dry_run: true
   states: ./

@@ -19,8 +19,9 @@ type Collector struct {
 
 func New(logger *zap.Logger, externalLabels map[string]string) *Collector {
 	c := &Collector{
-		logger: logger,
-		tasks:  make(map[string]map[uint64]*Task),
+		logger:         logger,
+		tasks:          make(map[string]map[uint64]*Task),
+		externalLabels: externalLabels,
 	}
 
 	return c
@@ -54,19 +55,19 @@ func (c *Collector) Coordinate(me *targetpb.MeshEntry) {
 	// add task
 	idCache := make([]uint64, 0, len(me.Targetgroup.Targets))
 	for _, addr := range me.Targetgroup.Targets {
-		taskID := TaskID(addr, me.Targetgroup.Labels)
-		idCache = append(idCache, taskID)
-		_, ok := taskGroup[taskID]
-		if ok {
-			continue
-		}
-
 		m := make(map[string]string, len(me.Targetgroup.Labels)+len(c.externalLabels))
 		for k, v := range me.Targetgroup.Labels {
 			m[k] = v
 		}
 		for k, v := range c.externalLabels {
 			m[k] = v
+		}
+
+		taskID := TaskID(addr, m)
+		idCache = append(idCache, taskID)
+		_, ok := taskGroup[taskID]
+		if ok {
+			continue
 		}
 
 		task, err := newTask(addr, m)

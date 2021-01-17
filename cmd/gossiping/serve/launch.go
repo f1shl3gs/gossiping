@@ -58,7 +58,8 @@ func launch(conf config.Config) error {
 
 	err = peer.Join(cluster.DefaultReconnectInterval, cluster.DefaultReconnectTimeout)
 	if err != nil {
-		return errors.Wrap(err, "join gossip cluster failed")
+		logger.Warn("errors occurred when join cluster",
+			zap.Error(err))
 	}
 
 	defer func() {
@@ -117,8 +118,7 @@ func launch(conf config.Config) error {
 
 	// list jobs
 	router.HandlerFunc(http.MethodGet, "/jobs", func(w http.ResponseWriter, r *http.Request) {
-		jobs := store.Jobs()
-		err = json.NewEncoder(w).Encode(&jobs)
+		err := store.Snapshot(w)
 		if err != nil {
 			logger.Warn("write jobs to client failed",
 				zap.String("remote", r.RemoteAddr),
@@ -205,24 +205,68 @@ func launch(conf config.Config) error {
 	if conf.Prometheus.Output != "" {
 		logger.Info("prometheus sd is configured",
 			zap.String("filepath", conf.Prometheus.Output))
+	}
 
-		group.Go(func() error {
-			for {
-				select {
-				case <-ctx.Done():
-					return nil
-				case <-peer.Changed():
-				}
+	group.Go(func() error {
+		if err := updateGossipingJob(peer, broadcast); err != nil {
+			logger.Warn("initial gossiping job failed",
+				zap.Error(err))
+		}
+
+		ticker := time.NewTicker(30 * time.Minute)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-ticker.C:
+			case <-peer.Changed():
+			}
+
+			err = updateGossipingJob(peer, broadcast)
+			if err != nil {
+				logger.Warn("update gossiping job failed",
+					zap.Error(err))
+			} else {
+				logger.Info("update gossiping job success")
+			}
+
+			if conf.Prometheus.Output != "" {
+				logger.Info("prometheus sd is configured",
+					zap.String("filepath", conf.Prometheus.Output))
 
 				err := generatePromConfig(peer, conf.Prometheus.Output)
 				if err != nil {
-					logger.Error("generate prometheus failed")
+					logger.Warn("generate prometheus sd file failed",
+						zap.Error(err))
+				} else {
+					logger.Info("regenerate prometheus sd file success")
 				}
 			}
-		})
-	}
+		}
+	})
 
 	return group.Wait()
+}
+
+func updateGossipingJob(peer *cluster.Peer, broadcast func(me *targetpb.MeshEntry) error) error {
+	if peer.Position() != 0 {
+		return nil
+	}
+
+	me := &targetpb.MeshEntry{
+		Name:        "__gossiping",
+		Status:      targetpb.Status_Active,
+		Updated:     time.Now(),
+		Targetgroup: &targetpb.Targetgroup{},
+	}
+
+	for _, p := range peer.Peers() {
+		me.Targetgroup.Targets = append(me.Targetgroup.Targets, p.Addr.String())
+	}
+
+	return broadcast(me)
 }
 
 func generatePromConfig(peer *cluster.Peer, output string) error {
@@ -252,3 +296,13 @@ func generatePromConfig(peer *cluster.Peer, output string) error {
 
 	return yaml.NewEncoder(f).Encode(&promConf)
 }
+
+/*
+targets:
+- "10.111.222.167",
+- "10.111.87.249",
+- "10.111.227.136",
+- "10.111.90.215",
+- "10.111.26.17",
+labels: {}
+*/

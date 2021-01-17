@@ -36,14 +36,14 @@ func autoComplete() *cobra.Command {
 			output := os.Stdout
 
 			switch args[0] {
-			case "base":
+			case "bash":
 				return rootCmd.GenBashCompletion(output)
 			case "fish":
 				return rootCmd.GenFishCompletion(output, true)
 			case "zsh":
 				return rootCmd.GenZshCompletion(output)
 			default:
-				return errors.New("unexpected type")
+				return errors.Errorf("unexpected type %q", args[0])
 			}
 		},
 	}

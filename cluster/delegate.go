@@ -14,13 +14,13 @@
 package cluster
 
 import (
-	"github.com/f1shl3gs/gossiping/cluster/clusterpb"
-	"go.uber.org/zap"
 	"time"
 
+	"github.com/f1shl3gs/gossiping/cluster/clusterpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/memberlist"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -53,56 +53,56 @@ func newDelegate(l *zap.Logger, reg prometheus.Registerer, p *Peer, retransmit i
 		RetransmitMult: retransmit,
 	}
 	messagesReceived := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_messages_received_total",
+		Name: "gossiping_cluster_messages_received_total",
 		Help: "Total number of cluster messages received.",
 	}, []string{"msg_type"})
 	messagesReceivedSize := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_messages_received_size_total",
+		Name: "gossiping_cluster_messages_received_size_total",
 		Help: "Total size of cluster messages received.",
 	}, []string{"msg_type"})
 	messagesSent := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_messages_sent_total",
+		Name: "gossiping_cluster_messages_sent_total",
 		Help: "Total number of cluster messages sent.",
 	}, []string{"msg_type"})
 	messagesSentSize := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_messages_sent_size_total",
+		Name: "gossiping_cluster_messages_sent_size_total",
 		Help: "Total size of cluster messages sent.",
 	}, []string{"msg_type"})
 	messagesPruned := prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_messages_pruned_total",
+		Name: "gossiping_cluster_messages_pruned_total",
 		Help: "Total number of cluster messages pruned.",
 	})
 	gossipClusterMembers := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "alertmanager_cluster_members",
+		Name: "gossiping_cluster_members",
 		Help: "Number indicating current number of members in cluster.",
 	}, func() float64 {
 		return float64(p.ClusterSize())
 	})
 	peerPosition := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "alertmanager_peer_position",
-		Help: "Position the Alertmanager instance believes it's in. The position determines a peer's behavior in the cluster.",
+		Name: "gossiping_peer_position",
+		Help: "Position the gossiping instance believes it's in. The position determines a peer's behavior in the cluster.",
 	}, func() float64 {
 		return float64(p.Position())
 	})
 	healthScore := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "alertmanager_cluster_health_score",
+		Name: "gossiping_cluster_health_score",
 		Help: "Health score of the cluster. Lower values are better and zero means 'totally healthy'.",
 	}, func() float64 {
 		return float64(p.mlist.GetHealthScore())
 	})
 	messagesQueued := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "alertmanager_cluster_messages_queued",
+		Name: "gossiping_cluster_messages_queued",
 		Help: "Number of cluster messages which are queued.",
 	}, func() float64 {
 		return float64(bcast.NumQueued())
 	})
 	nodeAlive := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_alive_messages_total",
+		Name: "gossiping_cluster_alive_messages_total",
 		Help: "Total number of received alive messages.",
 	}, []string{"peer"},
 	)
 	nodePingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "alertmanager_cluster_pings_seconds",
+		Name:    "gossiping_cluster_pings_seconds",
 		Help:    "Histogram of latencies for ping messages.",
 		Buckets: []float64{.005, .01, .025, .05, .1, .25, .5},
 	}, []string{"peer"},

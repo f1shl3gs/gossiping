@@ -182,7 +182,7 @@ func Create(
 		peers:         map[string]peer{},
 		resolvedPeers: resolvedPeers,
 		knownPeers:    knownPeers,
-		changes:       make(chan struct{}, 4),
+		changes:       make(chan struct{}, 16),
 	}
 
 	p.register(reg, name.String())
@@ -319,14 +319,14 @@ func (l *logWriter) Write(b []byte) (int, error) {
 func (p *Peer) register(reg prometheus.Registerer, name string) {
 	peerInfo := prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Name:        "alertmanager_cluster_peer_info",
+			Name:        "gossiping_cluster_peer_info",
 			Help:        "A metric with a constant '1' value labeled by peer name.",
 			ConstLabels: prometheus.Labels{"peer": name},
 		},
 	)
 	peerInfo.Set(1)
 	clusterFailedPeers := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "alertmanager_cluster_failed_peers",
+		Name: "gossiping_cluster_failed_peers",
 		Help: "Number indicating the current number of failed peers in the cluster.",
 	}, func() float64 {
 		p.peerLock.RLock()
@@ -335,34 +335,34 @@ func (p *Peer) register(reg prometheus.Registerer, name string) {
 		return float64(len(p.failedPeers))
 	})
 	p.failedReconnectionsCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_reconnections_failed_total",
+		Name: "gossiping_cluster_reconnections_failed_total",
 		Help: "A counter of the number of failed cluster peer reconnection attempts.",
 	})
 
 	p.reconnectionsCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_reconnections_total",
+		Name: "gossiping_cluster_reconnections_total",
 		Help: "A counter of the number of cluster peer reconnections.",
 	})
 
 	p.failedRefreshCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_refresh_join_failed_total",
+		Name: "gossiping_cluster_refresh_join_failed_total",
 		Help: "A counter of the number of failed cluster peer joined attempts via refresh.",
 	})
 	p.refreshCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_refresh_join_total",
+		Name: "gossiping_cluster_refresh_join_total",
 		Help: "A counter of the number of cluster peer joined via refresh.",
 	})
 
 	p.peerLeaveCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_peers_left_total",
+		Name: "gossiping_cluster_peers_left_total",
 		Help: "A counter of the number of peers that have left.",
 	})
 	p.peerUpdateCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_peers_update_total",
+		Name: "gossiping_cluster_peers_update_total",
 		Help: "A counter of the number of peers that have updated metadata.",
 	})
 	p.peerJoinCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "alertmanager_cluster_peers_joined_total",
+		Name: "gossiping_cluster_peers_joined_total",
 		Help: "A counter of the number of peers that have joined.",
 	})
 
