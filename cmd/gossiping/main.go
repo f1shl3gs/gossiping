@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/f1shl3gs/gossiping/cmd/gossiping/serve"
 	"os"
 
 	"github.com/f1shl3gs/gossiping/cmd/gossiping/cluster"
 	"github.com/f1shl3gs/gossiping/cmd/gossiping/job"
+	"github.com/f1shl3gs/gossiping/cmd/gossiping/serve"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
