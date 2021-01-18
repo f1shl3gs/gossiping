@@ -56,20 +56,6 @@ func launch(conf config.Config) error {
 		return errors.Wrap(err, "create cluster failed")
 	}
 
-	err = peer.Join(cluster.DefaultReconnectInterval, cluster.DefaultReconnectTimeout)
-	if err != nil {
-		logger.Warn("errors occurred when join cluster",
-			zap.Error(err))
-	}
-
-	defer func() {
-		err = peer.Leave(3 * time.Second)
-		if err != nil {
-			logger.Error("peer leave failed",
-				zap.Error(err))
-		}
-	}()
-
 	store := tasks.NewStore()
 	ch := peer.AddState("tg", store, prometheus.DefaultRegisterer)
 	broadcast := func(me *targetpb.MeshEntry) error {
@@ -167,6 +153,21 @@ func launch(conf config.Config) error {
 			return
 		}
 	})
+
+	// join the cluster
+	err = peer.Join(cluster.DefaultReconnectInterval, cluster.DefaultReconnectTimeout)
+	if err != nil {
+		logger.Warn("errors occurred when join cluster",
+			zap.Error(err))
+	}
+
+	defer func() {
+		err = peer.Leave(3 * time.Second)
+		if err != nil {
+			logger.Error("peer leave failed",
+				zap.Error(err))
+		}
+	}()
 
 	ctx := signals.WithStandardSignals(context.Background())
 	group, ctx := errgroup.WithContext(ctx)
