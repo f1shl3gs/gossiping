@@ -41,6 +41,8 @@ func newTask(addr string, lbs map[string]string) (*Task, error) {
 		return nil, err
 	}
 	pinger.SetPrivileged(true)
+	// extends timeout to 10 years, it's not forever but it should be ok
+	pinger.Timeout = time.Hour * 24 * 365 * 10
 
 	constLabels := make(map[string]string, len(lbs)+1)
 	for k, v := range lbs {
