@@ -3,7 +3,6 @@ module github.com/f1shl3gs/gossiping
 go 1.15
 
 require (
-	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c
 	github.com/go-ping/ping v0.0.0-20201115131931-3300c582a663
 	github.com/gogo/protobuf v1.3.1
 	github.com/hashicorp/go-sockaddr v1.0.0
